@@ -61,8 +61,10 @@ main :: proc() {
     using opts
 
     // ============ PROGRAMOS PRADŽIA ============ 
-
-    os2.set_working_directory(os2.args[0])
+    
+    self_dir, err_self := os2.get_executable_directory(context.allocator)
+    assert(err_self == nil, "Neišėjo surasti pačios programos failo katalogo. Neturiu kur ieškoti scenarijus.txt!")
+    os2.set_working_directory(self_dir)
     if len(os2.args) < 2 {
         fmt.println("Naudojimas: uml-gen [FAILAS]\nPvz.: ./uml-gen.exe scenarijus.txt")
         file_in = "scenarijus.txt"
@@ -75,7 +77,7 @@ main :: proc() {
     buffer_alloc = mem.arena_allocator(&buffer_arena)
 
     emore = fmt.caprint("") // just in case nil pointer freeing is bad in odin
-
+    
     // ============  LANGO SUKŪRIMAS  ============ 
 
     rl.SetTraceLogLevel(.ERROR)
@@ -115,6 +117,31 @@ main :: proc() {
         defer rl.EndDrawing()
         rl.ClearBackground({ 200, 200, 200, 255 })
         
+        defer {
+            if rl.IsKeyDown(.ENTER) {
+                folder, _ := os2.get_absolute_path(".", context.temp_allocator)
+                files, err := os2.read_all_directory_by_path(folder, context.temp_allocator)
+                if err != nil {
+                    error = "Neišėjo perskaityti aplankalo su programa!"
+                    emore = caprintf("Katalogas: %s", folder)
+                } else {
+                    diagram_count := 1
+                    for file in files {
+                        if base, ext := os2.split_filename_all(file.name); ext == "png" {
+                            diagram_count += 1
+                        }
+                    }
+
+                    rl.TakeScreenshot(caprintf("diagrama-%d.png", diagram_count))
+                }
+            }
+
+            rl.DrawTextEx(font, "Paspauskite Enter padaryti ekrano nuotraukai", { 4, 2 }, 24, 1, rl.GRAY)
+            rl.DrawTextEx(font, error, { 4, 26*1 }, 24, 1, { 127, 0, 0, 255 })
+            rl.DrawTextEx(font, emore, { 4, 26*2 }, 24, 1, { 0, 0, 127, 255 })
+        
+        }
+
         rl.BeginMode2D(camera)
         defer rl.EndMode2D()
 
@@ -122,14 +149,14 @@ main :: proc() {
         
         // ============ FAILO SINCHRONIZACIJA ============ 
 
-        stats, stat_err := os2.stat(file_in, context.temp_allocator)
-        if stat_err != nil { 
+        change_time, err_stat := os2.last_write_time_by_name(file_in)
+        if err_stat != nil { 
             error = "Neišėjo gauti įvesties failo pakeitimo datos..." 
             emore = file_err_msg(file_in)
             continue
         }
 
-        if time.diff(last_modified, stats.modification_time) > 0 {
+        if time.diff(last_modified, change_time) > 0 {
             free_all(buffer_alloc)
             data, read_err := os2.read_entire_file_from_path(file_in, buffer_alloc)
             if read_err != nil {
@@ -137,7 +164,7 @@ main :: proc() {
                 emore = file_err_msg(file_in)
             }
             parse(string(data))
-            last_modified = stats.modification_time
+            last_modified = change_time
         }
 
         // =============================================== 
@@ -152,11 +179,6 @@ redraw :: proc() {
 
     arrow_start = {}
 
-    //    rl.DrawLineV({ 100, 150 }, { 300, 350 }, rl.GRAY)
-    //    arrow({ 100, 150 }, { 300, 350 }, "")
-    //    if len(os2.args) > 0 do return
-
-    // tree_start: vec = { f32(width) / 2.5, 200 }
     tree_start: vec = { 0, 0 }
     
     { // starting point
@@ -167,8 +189,6 @@ redraw :: proc() {
 
     draw_node(&sc.main, tree_start)
 
-    rl.DrawTextEx(font, error, { 4, f32(height - 28) }, 12, 1, { 127, 0, 0, 255 })
-    rl.DrawTextEx(font, emore, { 4, f32(height - 14) }, 12, 1, { 127, 100, 0, 255 })
 }
 
 depth :: proc(node: Node) -> int {
@@ -280,11 +300,6 @@ draw_node :: proc(node: ^Node, pos: vec) {
             arrow_start = rhombus + { node_h/2, 0 }
 
             fuck_it = true
-            // arrow_start = rhombus
-            // arrow_start = pos + { padding*2 - (padding - node_h/2), node_h/2 }
-
-            // arrow(pos + { padding - node_h/2, node_h/2 }, pos + { 0, node_h/2 }, "Ne")
-            // arrow(pos + { padding*2 - (padding - node_h/2), node_h/2 }, pos + { padding*2, node_h/2 }, "Taip")
 
             pos.x += padding*3
 
