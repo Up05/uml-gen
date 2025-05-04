@@ -1,0 +1,31 @@
+
+# -----------------------------------------------------------------
+# Scenarijų formatas:
+#
+# Yra 5 specialūs simboliai: 
+# „#“ -- komentaras, „=“ -- lygu ir „[“ -- sąrašo skaičius
+# „{“ ir „}“ -- sąlygos rombams ir pan.
+# 
+# eilutės kurios prasideda komentaro simboliu yra ignoruojamos.
+# 4 raktai: PAVADINIMAS, NAUDOTOJAS, PAGRINDINIS ir ALTERNATYVOS atitinka piešinuko dalis
+# Sąrašo skaičiai yra tarp „[“ ir tarpo. 
+#   Pirmas lygis: 1, 2, 3, ...  Antras: a, b, c, ...
+# 
+# Naujos eilutės yra ignoruojamos
+# -----------------------------------------------------------------
+
+
+PAVADINIMAS=Gauti straipsnių sąrašą
+NAUDOTOJAS=Naudotojas
+
+PAGRINDINIS=
+[1. Naudotojas ateiną į kuruotą arba pagrindinį paieškos puslapį {Naudotojas iš karto pasirenka straipsnį}
+[2. Naudotojas pasirenka vieną iš gautų straipsnių
+[3. Naudotojas gaunastraipsnio turinį
+
+ALTERNATYVOS=
+[1.a. Naudotojas pasirenka norimus filtrus
+[1.b. Naudotojas įrašo tekstą į paieškos dėžutę 
+
+
+
