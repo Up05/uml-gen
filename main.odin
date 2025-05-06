@@ -37,6 +37,7 @@ Options :: struct {
     padding : f32,
     arrow_h : f32,
     arrow_V : f32, // kiek strėlytės viršus bus įkritęs... tipo: v = 0.1 ar ⮟ = 0.75 ar ▼ = 1
+    bounds  : f32,
 }
 
 opts := Options {
@@ -45,7 +46,8 @@ opts := Options {
     node_h  = 60,
     padding = 80,
     arrow_h = 10,
-    arrow_V = 0.9
+    arrow_V = 0.9,
+    bounds  = 10,
 }
 
 caprintf :: proc(format: string, args: ..any) -> cstring {
@@ -118,6 +120,9 @@ main :: proc() {
         rl.ClearBackground({ 200, 200, 200, 255 })
         
         defer {
+            rl.DrawRectangleLinesEx({ bounds, bounds, f32(width) - bounds*2, f32(height) - bounds*2 }, 2, rl.BLACK)
+            draw_wrapped_text(sc.name, { f32(width)/2 - f32(width)/8, bounds*2 }, { f32(width)/4, f32(font_sz) })
+
             if rl.IsKeyDown(.ENTER) {
                 folder, _ := os2.get_absolute_path(".", context.temp_allocator)
                 files, err := os2.read_all_directory_by_path(folder, context.temp_allocator)
@@ -136,10 +141,10 @@ main :: proc() {
                 }
             }
 
-            rl.DrawTextEx(font, "Paspauskite Enter padaryti ekrano nuotraukai", { 4, 2 }, 24, 1, rl.GRAY)
-            rl.DrawTextEx(font, error, { 4, 26*1 }, 24, 1, { 127, 0, 0, 255 })
-            rl.DrawTextEx(font, emore, { 4, 26*2 }, 24, 1, { 0, 0, 127, 255 })
-        
+            rl.DrawTextEx(font, "Paspauskite Enter padaryti programos nuotrauką", { bounds*2, bounds*2 }, 12, 1, rl.GRAY)
+            rl.DrawTextEx(font, error, { bounds*2, bounds*2+26*1 }, 24, 1, { 127, 0, 0, 255 })
+            rl.DrawTextEx(font, emore, { bounds*2, bounds*2+26*2 }, 24, 1, { 0, 0, 127, 255 })
+
         }
 
         rl.BeginMode2D(camera)
@@ -157,6 +162,8 @@ main :: proc() {
         }
 
         if time.diff(last_modified, change_time) > 0 {
+            error = ""
+            emore = fmt.caprintf("")
             free_all(buffer_alloc)
             data, read_err := os2.read_entire_file_from_path(file_in, buffer_alloc)
             if read_err != nil {
@@ -289,7 +296,7 @@ draw_node :: proc(node: ^Node, pos: vec) {
         case 1:
             draw_node(&child, pos)   
 
-        case 2:
+        case:
             
             rhombus := pos - offset_sum + (0 if i == 0 else node.steps[i - 1].offset) + { node_w/2, node_h/2 }
 
@@ -303,9 +310,9 @@ draw_node :: proc(node: ^Node, pos: vec) {
 
             pos.x += padding*3
 
-        case 3:
-            error = "Tingėjau pridėti daugiau lygių"
-            emore = "Tiesiog turėkit dviejų lygių sąrašus: 1.a., o ne, pvz.: 1.a.2."
+        // case 3:
+        //     error = "Tingėjau pridėti daugiau lygių"
+        //     emore = "Tiesiog turėkit dviejų lygių sąrašus: 1.a., o ne, pvz.: 1.a.2."
 
         }
 

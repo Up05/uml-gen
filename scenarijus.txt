@@ -6,17 +6,17 @@
 # „#“ -- komentaras, „=“ -- lygu ir „[“ -- sąrašo skaičius
 # „{“ ir „}“ -- sąlygos rombams ir pan.
 # 
-# eilutės kurios prasideda komentaro simboliu yra ignoruojamos.
-# 4 raktai: PAVADINIMAS, NAUDOTOJAS, PAGRINDINIS ir ALTERNATYVOS atitinka piešinuko dalis
-# Sąrašo skaičiai yra tarp „[“ ir tarpo. 
-#   Pirmas lygis: 1, 2, 3, ...  Antras: a, b, c, ...
-# 
-# Naujos eilutės yra ignoruojamos
+# 1. Nuo # iki eilutės pabaigos tekstas yra ignoruojamas.
+# 2. 3 raktai: PAVADINIMAS, PAGRINDINIS ir ALTERNATYVOS atitinka piešinuko dalis
+# 3. Sąrašo skaičiai yra tarp „[“ ir tarpo. 
+#    Pirmas lygis: 1, 2, 3, ...  Antras: a, b, c, ...
+# 4. {Bus tekstas padėtas ant rodyklytės (UML-e čia yra sąlyga.)} 
+#
+# Šiaip, naujos eilutės ir tarpai yra ignoruojamos
 # -----------------------------------------------------------------
 
 
 PAVADINIMAS=Gauti straipsnių sąrašą
-NAUDOTOJAS=Naudotojas
 
 PAGRINDINIS=
 [1. Naudotojas ateiną į kuruotą arba pagrindinį paieškos puslapį {Naudotojas iš karto pasirenka straipsnį}
@@ -26,6 +26,9 @@ PAGRINDINIS=
 ALTERNATYVOS=
 [1.a. Naudotojas pasirenka norimus filtrus
 [1.b. Naudotojas įrašo tekstą į paieškos dėžutę 
+[1.b.1. Test1
+[1.b.2. Test2
+[1.b.2.a. Test3  # Neveiks jei čia yra 1.b.1.(...)
+[1.b.2.b. Test4
 
-
-
+# NAUDOTOJAS=Naudotojas # nereikia, tingiu suveikti baseinus

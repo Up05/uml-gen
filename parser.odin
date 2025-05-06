@@ -244,9 +244,10 @@ tokenize :: proc(raw: string) {
             end, end_u8 := runes_until(this, '\n')
             text_start = i + end_u8
             skip += end
+            line += 1
 
         case '=':
-            error = "Prieš lygybės ženklą turi eiti vienas iš raktų: PAVADINIMAS, NAUDOTOJAS, PAGRINDINIS, ALTERNATYVOS"       
+            error = "Prieš lygybės ženklą turi eiti raktas: PAVADINIMAS, PAGRINDINIS, ALTERNATYVOS"       
             emore = caprintf("Eilutė: %d", line)
 
         case '[':
