@@ -37,6 +37,14 @@ KEY=text
 # These go after list items and are just there for the rhombus text conditions.
 ```
 
+```
+| Swim | lanes |
+
+# separate the screen into user parts, swimlanes have to start and end with the `|`
+# or they will need be considered swim lanes
+```
+
+
 Btw, generally, new lines and whitespace does not matter here.
 
 ## Installation
