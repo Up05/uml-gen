@@ -11,24 +11,22 @@
 # 3. Sąrašo skaičiai yra tarp „[“ ir tarpo. 
 #    Pirmas lygis: 1, 2, 3, ...  Antras: a, b, c, ...
 # 4. {Bus tekstas padėtas ant rodyklytės (UML-e čia yra sąlyga.)} 
+# 5. |Baseinai| (reikia priskirinėti pačiam)
 #
-# Šiaip, naujos eilutės ir tarpai yra ignoruojamos
+# Šiaip, naujos eilutės yra ignoruojamos
 # -----------------------------------------------------------------
 
+| Naudotojas | Informacinė sistema |
 
-PAVADINIMAS=Gauti straipsnių sąrašą
+PAVADINIMAS=Prisijungti
 
 PAGRINDINIS=
-[1. Naudotojas ateiną į kuruotą arba pagrindinį paieškos puslapį {Naudotojas iš karto pasirenka straipsnį}
-[2. Naudotojas pasirenka vieną iš gautų straipsnių
-[3. Naudotojas gaunastraipsnio turinį
+[1. Naudotojas ateiną į kuruotą arba pagrindinį paieškos puslapį
+[2. Naudotojas pasirenka straipsnį {Jei iš karto pasirenka}
+[3. Naudotojas pasirenka vieną iš gautų straipsnių
+[4. Naudotojas gauna straipsnio turinį
 
 ALTERNATYVOS=
-[1.a. Naudotojas pasirenka norimus filtrus
-[1.b. Naudotojas įrašo tekstą į paieškos dėžutę 
-[1.b.1. Test1
-[1.b.2. Test2
-[1.b.2.a. Test3  # Neveiks jei čia yra 1.b.1.(...)
-[1.b.2.b. Test4
+[2.a. Naudotojas pasirenka norimus filtrus {Jei naudoja paiešką}
+[2.b. Naudotojas įrašo tekstą į paieškos dėžutę
 
-# NAUDOTOJAS=Naudotojas # nereikia, tingiu suveikti baseinus

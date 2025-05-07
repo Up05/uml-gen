@@ -1,7 +1,7 @@
 package main
 
 import "core:fmt"
-
+import "core:strings"
 import "core:math/rand"
 import "core:container/small_array"
 
@@ -18,6 +18,8 @@ Scenario :: struct {
     name: string,
     user: string,
     main: Node,
+
+    swimlanes: [dynamic] string,
 }
 
 sc: Scenario
@@ -71,7 +73,11 @@ parse :: proc(raw: string) {
     fmt.println("==================================================================")
     fmt.println()
 
-    fmt.printf("%#v\n", tokens)
+    for token, i in tokens {
+        next := tokens[i + 1] if i < len(tokens) - 1 else ""
+        if token == "\n" && next != "\n" do fmt.println()
+        else if token != "\n" do fmt.printf("%s\t", token)
+    }
 
     fmt.println()
     fmt.println("==================================================================")
@@ -82,14 +88,24 @@ parse :: proc(raw: string) {
     curr = 0
     realline = 0
     fakeline = 0
-
+    
     for peek() != "" {
-        if !parse_assign() do skip()
+        if !parse_assign() && !parse_swimlane() do skip()
     }
 
     // fmt.println(sc)
     print_scenario(sc)
 }
+
+parse_swimlane :: proc() -> bool {
+    if !starts_with(peek(), "|") do return false
+    
+    append(&sc.swimlanes, strings.trim_space(peek()[1:]))
+        
+    next()
+    return true
+}
+
 
 parse_assign :: proc() -> bool {
     switch(peek()) {
@@ -100,7 +116,7 @@ parse_assign :: proc() -> bool {
         }
         skip(2)
     
-        sc.name = next()
+        sc.name = strings.trim_space(next())
         return true
 
     case "NAUDOTOJAS": 
@@ -158,7 +174,6 @@ parse_list_item :: proc(node: ^Node) -> bool {
                     emore = caprintf("Anksčiau buvo tik %d, o dabar jau naudojamas %d. Eilutė: %d", len(node.steps), index + 1, the_line)
                 }
                 for index >= len(node.steps) {
-                    fmt.println("ADDED NEW NODE!", index, len(node.steps))
                     append(&node.steps, Node { name = "<Neužvardintas>" })
                 }
                 node = &node.steps[index]
@@ -186,11 +201,11 @@ parse_list_item :: proc(node: ^Node) -> bool {
         path = path[1:]
     }
 
-    node.name = next()
+    node.name = strings.trim_space(next())
     node.id = rand.uint64()
     
     if len(peek()) > 0 && peek()[0] == '{' {
-        node.cond = next()
+        node.cond = strings.trim_space(next())
         node.cond = node.cond[1:len(node.cond)-1]
     }
 
@@ -275,6 +290,19 @@ tokenize :: proc(raw: string) {
             append(&tokens, raw[i:i + end_u8 + 1])
             text_start = i + end_u8 + 1
             skip += end
+        
+        case '|':
+            end, end_u8 := runes_until(this[1:], '|')
+            if end != -1 {
+                // no need to add +1 to end, end_u8
+                if text_start != i do append(&tokens, raw[text_start:i])
+                append(&tokens, raw[i:i + end_u8 + 1])
+                text_start = i + end_u8 + 1
+                skip += end
+            } else {
+                if text_start != i do append(&tokens, raw[text_start:i])
+                text_start = i + 1
+            }
 
         case '\n':
             if text_start != i do append(&tokens, raw[text_start:i])

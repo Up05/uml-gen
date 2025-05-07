@@ -69,6 +69,7 @@ print_scenario :: proc(sc: Scenario) {
     fmt.println("----------------------------------------")
     fmt.printfln("Pavadinimas: %s", sc.name)
     fmt.printfln("Naudotojas: %s", sc.user)
+    fmt.printfln("Baseinai: %v", sc.swimlanes)
         
     print_nodes(sc.main.steps)
 

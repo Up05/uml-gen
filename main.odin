@@ -12,7 +12,7 @@ import rl "vendor:raylib"
 vec  :: rl.Vector2
 cstr :: strings.clone_to_cstring
 
-BG   :: rl.Color { 200, 200, 200, 255 }
+BG   :: rl.Color { 255, 255, 255, 255 }
 
 file_in  : string  // dažniausia, (PROGRAMOS APLANKALAS)/scenarijus.txt
 file_out : string  // nebenaudojamas
@@ -44,11 +44,13 @@ opts := Options {
     font_sz = 12,
     node_w  = 160,
     node_h  = 60,
-    padding = 80,
+    padding = 60,
     arrow_h = 10,
     arrow_V = 0.9,
     bounds  = 10,
 }
+
+font_sz_f32: f32 // fuck me
 
 caprintf :: proc(format: string, args: ..any) -> cstring {
     delete(emore)
@@ -64,6 +66,8 @@ main :: proc() {
 
     // ============ PROGRAMOS PRADŽIA ============ 
     
+    font_sz_f32 = f32(font_sz)
+
     self_dir, err_self := os2.get_executable_directory(context.allocator)
     assert(err_self == nil, "Neišėjo surasti pačios programos failo katalogo. Neturiu kur ieškoti scenarijus.txt!")
     os2.set_working_directory(self_dir)
@@ -84,10 +88,12 @@ main :: proc() {
 
     rl.SetTraceLogLevel(.ERROR)
     rl.SetConfigFlags({ .WINDOW_RESIZABLE, .MSAA_4X_HINT })
+
     rl.InitWindow(1280, 720, "UML Generatorius")
     rl.SetTargetFPS(60)
 
     font = rl.LoadFontEx("Helvetica.ttf", font_sz * 2, nil, 0x1FFF)
+    rl.SetTextureFilter(font.texture, .TRILINEAR)
     
     pwidth: i32
     last_modified: time.Time
@@ -117,18 +123,35 @@ main :: proc() {
 
         rl.BeginDrawing() 
         defer rl.EndDrawing()
-        rl.ClearBackground({ 200, 200, 200, 255 })
+        rl.ClearBackground(BG)
         
-        defer {
-            rl.DrawRectangleLinesEx({ bounds, bounds, f32(width) - bounds*2, f32(height) - bounds*2 }, 2, rl.BLACK)
-            draw_wrapped_text(sc.name, { f32(width)/2 - f32(width)/8, bounds*2 }, { f32(width)/4, f32(font_sz) })
+        rl.DrawRectangleLinesEx({ bounds, bounds, f32(width) - bounds*2, f32(height) - bounds*2 }, 2, rl.BLACK)
+        draw_wrapped_text(sc.name, { f32(width)/2 - f32(width)/8*camera.zoom, bounds*2 }, 
+            { f32(width)/4*camera.zoom, f32(font_sz) * camera.zoom }, text_size = f32(font_sz) * camera.zoom)
 
+        rl.DrawLineEx({ bounds, bounds*2 + f32(font_sz) * camera.zoom + 4 }, { f32(width) - bounds, bounds*2 + f32(font_sz) * camera.zoom + 4 }, 2, rl.BLACK)
+        for lane, i in sc.swimlanes {
+            w := (f32(width) - bounds*2) / f32(len(sc.swimlanes)) 
+            if i != len(sc.swimlanes) - 1 {
+                rl.DrawLineEx(
+                    { bounds + w*f32(i+1), bounds*2 + f32(font_sz) * camera.zoom + 4 },
+                    { bounds + w*f32(i+1), f32(height) - bounds }, 2, rl.BLACK)
+            }
+            draw_wrapped_text(lane, { bounds + w*f32(i), bounds*2 + f32(font_sz)*camera.zoom + 16 }, 
+                { w, f32(font_sz) * camera.zoom }, text_size = f32(font_sz) * camera.zoom)
+            rl.DrawLineEx(
+                { bounds,               bounds*2 + f32(font_sz)*camera.zoom*2 + 20 },
+                { f32(width) - bounds,  bounds*2 + f32(font_sz)*camera.zoom*2 + 20 }, 2, rl.BLACK)
+        }
+
+
+        defer {
             if rl.IsKeyDown(.ENTER) {
                 folder, _ := os2.get_absolute_path(".", context.temp_allocator)
                 files, err := os2.read_all_directory_by_path(folder, context.temp_allocator)
                 if err != nil {
                     error = "Neišėjo perskaityti aplankalo su programa!"
-                    emore = caprintf("Katalogas: %s", folder)
+                    emore = fmt.caprintf("Katalogas: %s", folder)
                 } else {
                     diagram_count := 1
                     for file in files {
@@ -138,6 +161,8 @@ main :: proc() {
                     }
 
                     rl.TakeScreenshot(caprintf("diagrama-%d.png", diagram_count))
+                    error = ""
+                    emore = fmt.caprint("")
                 }
             }
 
@@ -191,10 +216,11 @@ redraw :: proc() {
     { // starting point
         pos := tree_start - { -node_w / 2, padding + node_h/2.5 }
         rl.DrawCircleV(pos, node_h / 2.5, rl.BLACK)
-        arrow(pos + { -node_w / 2 + node_w / 2, node_h / 2.5 }, tree_start + { node_w / 2, 0 }, "")
+        // arrow(pos + { -node_w / 2 + node_w / 2, node_h / 2.5 }, tree_start + { node_w / 2, 0 }, "")
+        arrow_start = pos + { -node_w / 2 + node_w / 2, node_h / 2.5 }
     }
 
-    draw_node(&sc.main, tree_start)
+    draw_node(&sc.main, tree_start, ballz = true)
 
 }
 
@@ -207,7 +233,7 @@ depth :: proc(node: Node) -> int {
     return 1 + sum
 }
 
-arrow :: proc(a: vec, b: vec, text: string, horizontal := false) {
+arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := false) {// {{{
     using opts
     
     // rl.DrawCircleV(a, 3, rl.RED)
@@ -256,11 +282,16 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false) {
             rl.DrawTriangle(b + { arrow_h, -arrow_h/2 } * dx, b, b + { arrow_h * arrow_V, 0 } * dx, rl.BLACK)
 
         } else {
-
-            rl.DrawLineV({ X2, Y1 }, { X2, avg(Y1, Y2) }, rl.BLACK)
-            rl.DrawLineV({ X1, avg(Y1, Y2) }, { X2, avg(Y1, Y2) }, rl.BLACK)
-            rl.DrawLineV({ X1, avg(Y1, Y2) }, { X1, Y2 }, rl.BLACK)
-
+            
+            if starts_vert {
+                rl.DrawLineV({ X2, Y1 }, { X2, avg(Y1, Y2) }, rl.BLACK)
+                rl.DrawLineV({ X1, avg(Y1, Y2) }, { X2, avg(Y1, Y2) }, rl.BLACK)
+                rl.DrawLineV({ X1, avg(Y1, Y2) }, { X1, Y2 }, rl.BLACK)
+                
+            } else {
+                rl.DrawLineV({ X1, Y1 }, { X2, Y1 }, rl.BLACK)
+                rl.DrawLineV({ X1, Y1 }, { X1, Y2 }, rl.BLACK)
+            }
             rl.DrawTriangle(b - { 0, arrow_h * arrow_V }, b, b - { -arrow_h/2, arrow_h }, rl.BLACK)
             rl.DrawTriangle(b - { +arrow_h/2, arrow_h }, b, b - { 0, arrow_h * arrow_V }, rl.BLACK)
         }
@@ -268,19 +299,21 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false) {
         if text != "" {
             draw_wrapped_text(
                 text,
-                { min(a.x, b.x), min(a.y, b.y) }, 
-                { max(a.x, b.x) - min(a.x, b.x), max(a.y, b.y) - min(a.y, b.y) },
+                { min(a.x, b.x), min(a.y, b.y) - font_sz_f32 }, 
+                { max(a.x, b.x) - min(a.x, b.x), min(max(a.y, b.y) - min(a.y, b.y), font_sz_f32*2) },
                 BG
             )
         }
 
-    }}
+    }}// }}}
 
 // Čia logikai skyriau visą rytą, galit net nebandyt iš narpliot,
 // dabar jau niekas to nesugebės...
-draw_node :: proc(node: ^Node, pos: vec) {
+draw_node :: proc(node: ^Node, pos: vec, ballz := false, vert_actually := false) {
     using opts
     pos := pos
+    ballz := ballz
+    vert_actually := vert_actually
     
     offset_sum  : vec
 
@@ -294,7 +327,7 @@ draw_node :: proc(node: ^Node, pos: vec) {
         d := depth(child)
         switch d {
         case 1:
-            draw_node(&child, pos)   
+            draw_node(&child, pos) 
 
         case:
             
@@ -302,28 +335,47 @@ draw_node :: proc(node: ^Node, pos: vec) {
 
             if i > 0 do arrow(arrow_start, rhombus + { 0, -node_h/2 }, "")
             rl.DrawPolyLines(rhombus, 4, node_h/2, 90, rl.BLACK)
-            arrow_start = rhombus - { node_h/2, 0 }
-            draw_node(&child, pos - offset_sum - { padding * 3, 0 })    
-            arrow_start = rhombus + { node_h/2, 0 }
+            if child.steps[0].offset.x > padding*3 - node_w  {
+                arrow_start = rhombus - { 0, -node_h/2 }
+                vert_actually = false
+            } else {
+                arrow_start = rhombus - { node_h/2, 0 }
+                vert_actually = true
+            }
+            draw_node(&child, pos - offset_sum - { padding * 3, -node_h-padding }, vert_actually = vert_actually) 
+            vert_actually = false
+
+            if child.offset.x < -node_w/8 {
+                arrow_start = rhombus + { 0, node_h/2 }
+                vert_actually = true
+            } else {
+                arrow_start = rhombus + { node_h/2, 0 }
+                vert_actually = false
+            }
+            // arrow_start = rhombus + { node_h/2, 0 }
 
             fuck_it = true
 
             pos.x += padding*3
-
-        // case 3:
-        //     error = "Tingėjau pridėti daugiau lygių"
-        //     emore = "Tiesiog turėkit dviejų lygių sąrašus: 1.a., o ne, pvz.: 1.a.2."
+            pos.y += node_h + padding
 
         }
 
         child.pos = pos
         
-        if !fuck_it && i == 0 && arrow_start != {} {
-            arrow(arrow_start, pos + { node_w, node_h/2 }, child.cond, true)
+        if ballz {
+            arrow(arrow_start, pos + { node_w/2, 0 }, "", false, true)
+            ballz = false
             arrow_start = {}
         }
+
+        if !fuck_it && i == 0 && arrow_start != {} {
+            arrow(arrow_start, pos + { node_w/2, 0 }, child.cond, false, !vert_actually)
+            arrow_start = {}
+            vert_actually = false
+        }
         if fuck_it && arrow_start != {} {
-            arrow(arrow_start, pos + { 0, node_h/2 }, child.cond, true)
+            arrow(arrow_start, pos + { node_w/2, 0 }, child.cond, false, vert_actually)
             arrow_start = {}
         }
 
@@ -340,8 +392,8 @@ draw_node :: proc(node: ^Node, pos: vec) {
             // rl.DrawCircleV(rl.GetScreenToWorld2D(rl.GetMousePosition(), camera), 15, rl.BLUE)
         }
         // arrow(pos + { node_w / 2, node_h }, pos + { node_w / 2, node_h + padding }, "")
-        if i != 0 && d == 1 do arrow(node.steps[i - 1].pos + { node_w / 2, node_h }, pos + { node_w / 2, 0 }, "")
-        else if i == 0 && arrow_start != {} do arrow(arrow_start, { pos.x, arrow_start.y }, "")
+        if i != 0 && d == 1 do arrow(node.steps[i - 1].pos + { node_w / 2, node_h }, pos + { node_w / 2, 0 }, "", starts_vert = true)
+        else if i == 0 && arrow_start != {} do arrow(arrow_start, { pos.x, pos.y }, "", starts_vert = true)
         arrow_start = child.pos + { node_w / 2, node_h }
 
         rl.DrawRectangleRoundedLines({ pos.x, pos.y, node_w, node_h }, 0.3, 10, rl.BLACK)
@@ -361,7 +413,7 @@ draw_node :: proc(node: ^Node, pos: vec) {
     // arrow_start = {}
 }
 
-draw_wrapped_text :: proc(text: string, pos: vec, box_size: vec, bg := rl.Color { 0, 0, 0, 0 }) {
+draw_wrapped_text :: proc(text: string, pos: vec, box_size: vec, bg := rl.Color { 0, 0, 0, 0 }, text_size := font_sz_f32) {
     using opts
     text := text
     opos := pos // original pos
@@ -377,7 +429,7 @@ draw_wrapped_text :: proc(text: string, pos: vec, box_size: vec, bg := rl.Color 
         defer pcursor = cursor
         
         csel := cstr(text[:cursor], context.temp_allocator)
-        size := rl.MeasureTextEx(font, csel, f32(font_sz), 1)
+        size := rl.MeasureTextEx(font, csel, text_size, 1)
         
         if size.x >= box_size.x - 8 {
             append(&lines, text[:pcursor])
@@ -394,12 +446,12 @@ draw_wrapped_text :: proc(text: string, pos: vec, box_size: vec, bg := rl.Color 
 
     for line in lines {
         ctext := cstr(line, context.temp_allocator)
-        size  := rl.MeasureTextEx(font, ctext, f32(font_sz), 1) 
+        size  := rl.MeasureTextEx(font, ctext, text_size, 1) 
         
         o := vec { (box_size.x - size.x) / 2, (box_size.y - (f32(size.y + 1) * f32(len(lines)))) / 2.5 }
         rl.DrawRectangleV(snap(pos + o, 2), size, bg)
-        rl.DrawTextEx(font, ctext, snap(pos + o, 2) + { -0.25, -0.5 }, f32(font_sz), 1, rl.BLACK)
-        pos.y += f32(font_sz) + 1
+        rl.DrawTextEx(font, ctext, snap(pos + o, 2) + { -0.25, -0.5 }, text_size, 1, rl.BLACK)
+        pos.y += text_size + 1
     }
 
 
