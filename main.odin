@@ -57,7 +57,7 @@ caprintf :: proc(format: string, args: ..any) -> cstring {
     return fmt.caprintf(format, ..args, allocator = context.allocator)
 }
 
-main :: proc() {
+main :: proc() {// {{{
     file_err_msg :: proc(file: string) -> cstring {
         return caprintf("Failo vieta: %s", eat_err(os2.get_absolute_path(file, context.temp_allocator)))
     }
@@ -126,8 +126,8 @@ main :: proc() {
         rl.ClearBackground(BG)
         
         rl.DrawRectangleLinesEx({ bounds, bounds, f32(width) - bounds*2, f32(height) - bounds*2 }, 2, rl.BLACK)
-        draw_wrapped_text(sc.name, { f32(width)/2 - f32(width)/8*camera.zoom, bounds*2 }, 
-            { f32(width)/4*camera.zoom, f32(font_sz) * camera.zoom }, text_size = f32(font_sz) * camera.zoom)
+        draw_wrapped_text(sc.name, { f32(width)/2 - f32(width)/6*camera.zoom, bounds*2 }, 
+            { f32(width)/3*camera.zoom, f32(font_sz) * camera.zoom }, text_size = f32(font_sz) * camera.zoom)
 
         rl.DrawLineEx({ bounds, bounds*2 + f32(font_sz) * camera.zoom + 4 }, { f32(width) - bounds, bounds*2 + f32(font_sz) * camera.zoom + 4 }, 2, rl.BLACK)
         for lane, i in sc.swimlanes {
@@ -204,9 +204,9 @@ main :: proc() {
         free_all(context.temp_allocator)
     }
 
-}
+}// }}}
 
-redraw :: proc() {
+redraw :: proc() {// {{{
     using opts
 
     arrow_start = {}
@@ -222,16 +222,16 @@ redraw :: proc() {
 
     draw_node(&sc.main, tree_start, ballz = true)
 
-}
+}// }}}
 
-depth :: proc(node: Node) -> int {
+depth :: proc(node: Node) -> int {// {{{
     
     sum: int
     for c in node.steps {
         sum = max(sum, depth(c))
     }
     return 1 + sum
-}
+}// }}}
 
 arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := false) {// {{{
     using opts
@@ -239,11 +239,22 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := 
     // rl.DrawCircleV(a, 3, rl.RED)
     // rl.DrawCircleV(b, 3, rl.BLUE)
 
+    mid_line_y: f32
+
     if math.abs(a.x - b.x) < 2 { // plius minus lygūs
         rl.DrawLineV(a, b, rl.BLACK)
         rl.DrawTriangle(b - { 0, arrow_h * arrow_V }, b, b - { -arrow_h/2, arrow_h }, rl.BLACK)
         rl.DrawTriangle(b - { +arrow_h/2, arrow_h }, b, b - { 0, arrow_h * arrow_V }, rl.BLACK)
-        // čia man nereikia teksto
+        
+        if text != "" {
+            height := max(a.y, b.y) - min(a.y, b.y)
+            draw_wrapped_text(
+                text,
+                { a.x - padding, min(a.y, b.y) + height/4 }, 
+                { padding*2, height - height/8 },
+                BG
+            )
+        }
 
     } else if math.abs(a.y - b.y) < 2 {
         rl.DrawLineV(a, b, rl.BLACK)
@@ -277,6 +288,7 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := 
             rl.DrawLineV({ X1, Y2 }, { avg(X1, X2), Y2 }, rl.BLACK)
             rl.DrawLineV({ avg(X1, X2), Y1}, { avg(X1, X2), Y2 }, rl.BLACK)
             rl.DrawLineV({ avg(X1, X2), Y1 }, { X2, Y1 }, rl.BLACK)
+            mid_line_y = Y2
 
             rl.DrawTriangle(b + { arrow_h * arrow_V, 0 } * dx, b, b + { arrow_h, +arrow_h/2 } * dx, rl.BLACK)
             rl.DrawTriangle(b + { arrow_h, -arrow_h/2 } * dx, b, b + { arrow_h * arrow_V, 0 } * dx, rl.BLACK)
@@ -287,10 +299,12 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := 
                 rl.DrawLineV({ X2, Y1 }, { X2, avg(Y1, Y2) }, rl.BLACK)
                 rl.DrawLineV({ X1, avg(Y1, Y2) }, { X2, avg(Y1, Y2) }, rl.BLACK)
                 rl.DrawLineV({ X1, avg(Y1, Y2) }, { X1, Y2 }, rl.BLACK)
+                mid_line_y = avg(Y1, Y2)
                 
             } else {
                 rl.DrawLineV({ X1, Y1 }, { X2, Y1 }, rl.BLACK)
                 rl.DrawLineV({ X1, Y1 }, { X1, Y2 }, rl.BLACK)
+                mid_line_y = Y1
             }
             rl.DrawTriangle(b - { 0, arrow_h * arrow_V }, b, b - { -arrow_h/2, arrow_h }, rl.BLACK)
             rl.DrawTriangle(b - { +arrow_h/2, arrow_h }, b, b - { 0, arrow_h * arrow_V }, rl.BLACK)
@@ -299,7 +313,7 @@ arrow :: proc(a: vec, b: vec, text: string, horizontal := false, starts_vert := 
         if text != "" {
             draw_wrapped_text(
                 text,
-                { min(a.x, b.x), min(a.y, b.y) - font_sz_f32 }, 
+                { min(a.x, b.x), mid_line_y - font_sz_f32 - 5 }, 
                 { max(a.x, b.x) - min(a.x, b.x), min(max(a.y, b.y) - min(a.y, b.y), font_sz_f32*2) },
                 BG
             )

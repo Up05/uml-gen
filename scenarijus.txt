@@ -14,19 +14,14 @@
 # 5. |Baseinai| (reikia priskirinėti pačiam)
 #
 # Šiaip, naujos eilutės yra ignoruojamos
+# O tarpai ne (ištrinkit tarpus po lygu, tingėjau)
 # -----------------------------------------------------------------
 
-| Naudotojas | Informacinė sistema |
+| Keleivis | IS |
 
-PAVADINIMAS=Prisijungti
+PAVADINIMAS=Gauti lokacija    
 
 PAGRINDINIS=
-[1. Naudotojas ateiną į kuruotą arba pagrindinį paieškos puslapį
-[2. Naudotojas pasirenka straipsnį {Jei iš karto pasirenka}
-[3. Naudotojas pasirenka vieną iš gautų straipsnių
-[4. Naudotojas gauna straipsnio turinį
-
-ALTERNATYVOS=
-[2.a. Naudotojas pasirenka norimus filtrus {Jei naudoja paiešką}
-[2.b. Naudotojas įrašo tekstą į paieškos dėžutę
-
+[1. IS pateikia užklausą keleivio GPS imtuvui 
+[2. Keleivio GPS imtuvas pateikia atsakymą 
+[3. IS fiksuoja lokaciją 
